@@ -12,9 +12,9 @@ function generarSessionToken(password: string): string {
     .digest('hex')
 }
 
-function autenticado(): boolean {
+async function autenticado(): Promise<boolean> {
   try {
-    const token = cookies().get('admin_session')?.value
+    const token = (await cookies()).get('admin_session')?.value
     if (!token || !process.env.ADMIN_PASSWORD) return false
     const esperado = generarSessionToken(process.env.ADMIN_PASSWORD)
     const bufToken    = Buffer.from(token)
@@ -25,7 +25,7 @@ function autenticado(): boolean {
 }
 
 export async function POST(req: NextRequest) {
-  if (!autenticado()) {
+  if (!await autenticado()) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   }
 

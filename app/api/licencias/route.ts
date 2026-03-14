@@ -10,9 +10,9 @@ function generarSessionToken(password: string): string {
     .digest('hex')
 }
 
-function autenticado(): boolean {
+async function autenticado(): Promise<boolean> {
   try {
-    const token = cookies().get('admin_session')?.value
+    const token = (await cookies()).get('admin_session')?.value
     if (!token || !process.env.ADMIN_PASSWORD) return false
     const esperado = generarSessionToken(process.env.ADMIN_PASSWORD)
     // timingSafeEqual requiere que los buffers tengan el mismo largo
@@ -27,7 +27,7 @@ function autenticado(): boolean {
 
 // GET /api/licencias — listar todas con sus terminales
 export async function GET() {
-  if (!autenticado()) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+  if (!await autenticado()) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
   try {
     const { data: licencias, error } = await supabase
@@ -72,7 +72,7 @@ export async function GET() {
 
 // PATCH /api/licencias — acciones
 export async function PATCH(req: NextRequest) {
-  if (!autenticado()) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+  if (!await autenticado()) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
   try {
     const { id, accion, plan_id } = await req.json()
@@ -108,7 +108,7 @@ export async function PATCH(req: NextRequest) {
 
 // POST /api/licencias — crear nueva
 export async function POST(req: NextRequest) {
-  if (!autenticado()) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+  if (!await autenticado()) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
   try {
     const { licencia_hash, cliente_nombre, plan_id, pagado_hasta } = await req.json()
@@ -133,7 +133,7 @@ export async function POST(req: NextRequest) {
 
 // DELETE /api/licencias — eliminar cliente
 export async function DELETE(req: NextRequest) {
-  if (!autenticado()) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+  if (!await autenticado()) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
   try {
     const { id } = await req.json()
