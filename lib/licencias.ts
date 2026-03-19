@@ -11,9 +11,11 @@ import { createHmac, createHash } from 'crypto'
 const PLAN_IDS = [
   'STARTER_LOCAL',
   'COMERCIO_LOCAL',
+  'COMERCIO_PLUS_LOCAL',
   'PYME_LOCAL',
   'STARTER_SERVIDOR',
   'COMERCIO_SERVIDOR',
+  'COMERCIO_PLUS_SERVIDOR',
   'PYME_SERVIDOR',
 ] as const
 

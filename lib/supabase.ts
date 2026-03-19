@@ -2,17 +2,19 @@
 // Do NOT add the Supabase client here. Use lib/supabase.server.ts for that.
 
 export type PlanId =
-  | 'STARTER_LOCAL' | 'COMERCIO_LOCAL' | 'PYME_LOCAL'
-  | 'STARTER_SERVIDOR' | 'COMERCIO_SERVIDOR' | 'PYME_SERVIDOR'
+  | 'STARTER_LOCAL' | 'COMERCIO_LOCAL' | 'COMERCIO_PLUS_LOCAL' | 'PYME_LOCAL'
+  | 'STARTER_SERVIDOR' | 'COMERCIO_SERVIDOR' | 'COMERCIO_PLUS_SERVIDOR' | 'PYME_SERVIDOR'
 
 export type Edition = 'LOCAL' | 'SERVIDOR'
 
 export const PLAN_LABELS: Record<string, string> = {
   STARTER_LOCAL:     'Starter Local',
   COMERCIO_LOCAL:    'Comercio Local',
+  COMERCIO_PLUS_LOCAL: 'Comercio Plus Local',
   PYME_LOCAL:        'Pyme Local',
   STARTER_SERVIDOR:  'Starter Servidor',
   COMERCIO_SERVIDOR: 'Comercio Servidor',
+  COMERCIO_PLUS_SERVIDOR: 'Comercio Plus Servidor',
   PYME_SERVIDOR:     'Pyme Servidor',
 }
 
@@ -21,6 +23,7 @@ export const PLANES = Object.keys(PLAN_LABELS) as PlanId[]
 export const LIMITE_TERMINALES: Record<string, number> = {
   STARTER_LOCAL:  0,
   COMERCIO_LOCAL: 2,
+  COMERCIO_PLUS_LOCAL: 3,
   PYME_LOCAL:     4,
 }
 
@@ -54,6 +57,10 @@ export interface Licencia {
   cantidad_aperturas: number
   creada_en: string
   clave_texto: string | null
+  update_required: boolean | null
+  update_version: string | null
+  update_notes: string | null
+  update_url: string | null
 }
 
 export interface Terminal {

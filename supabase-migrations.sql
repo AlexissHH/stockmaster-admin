@@ -78,3 +78,78 @@ end;
 $$;
 
 grant execute on function registrar_terminal(text, text, text, text) to anon;
+
+
+-- ── 5. Directivas de actualización por cliente ───────────────────────────────
+-- Permite que el panel admin marque una actualización requerida/opcional y
+-- que el cliente muestre la pantalla de actualización al iniciar.
+alter table licencias add column if not exists update_required boolean default false;
+alter table licencias add column if not exists update_version text;
+alter table licencias add column if not exists update_notes text;
+alter table licencias add column if not exists update_url text;
+
+
+-- ── 6. Vincular licencia LOCAL a un único dispositivo principal ─────────────
+-- Evita que la misma clave se active como PRINCIPAL en múltiples PCs.
+alter table licencias add column if not exists principal_device_id text;
+alter table licencias add column if not exists principal_device_name text;
+alter table licencias add column if not exists principal_bound_at timestamptz;
+
+create or replace function bind_principal_device(
+  p_hash text,
+  p_device_id text,
+  p_device_name text default null
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_licencia licencias%rowtype;
+begin
+  if p_hash is null or btrim(p_hash) = '' then
+    return jsonb_build_object('ok', false, 'reason', 'hash_invalido');
+  end if;
+
+  if p_device_id is null or btrim(p_device_id) = '' then
+    return jsonb_build_object('ok', false, 'reason', 'device_invalido');
+  end if;
+
+  select *
+  into v_licencia
+  from licencias
+  where licencia_hash = p_hash
+  for update;
+
+  if not found then
+    return jsonb_build_object('ok', false, 'reason', 'no_encontrada');
+  end if;
+
+  -- En edición SERVIDOR no forzamos binding de principal único.
+  if upper(coalesce(v_licencia.plan_id, '')) like '%_SERVIDOR' then
+    return jsonb_build_object('ok', true, 'mode', 'SERVIDOR');
+  end if;
+
+  if v_licencia.principal_device_id is null
+     or btrim(v_licencia.principal_device_id) = ''
+     or v_licencia.principal_device_id = p_device_id then
+    update licencias
+    set
+      principal_device_id = p_device_id,
+      principal_device_name = nullif(btrim(p_device_name), ''),
+      principal_bound_at = coalesce(principal_bound_at, now())
+    where id = v_licencia.id;
+
+    return jsonb_build_object('ok', true, 'mode', 'LOCAL');
+  end if;
+
+  return jsonb_build_object(
+    'ok', false,
+    'reason', 'principal_ya_registrado',
+    'principal_device_name', coalesce(v_licencia.principal_device_name, '')
+  );
+end;
+$$;
+
+grant execute on function bind_principal_device(text, text, text) to anon;

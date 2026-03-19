@@ -444,10 +444,19 @@ function ModalAcciones({
   const [loading, setLoading] = useState<string | null>(null)
   const [nuevoPlan, setNuevoPlan] = useState(licencia.plan_id)
   const [confEliminar, setConfEliminar] = useState(false)
+  const [updateRequired, setUpdateRequired] = useState(Boolean(licencia.update_required))
+  const [updateVersion, setUpdateVersion] = useState(licencia.update_version ?? '')
+  const [updateNotes, setUpdateNotes] = useState(licencia.update_notes ?? '')
+  const [updateUrl, setUpdateUrl] = useState(licencia.update_url ?? '')
   const estado = estadoLicencia(licencia)
   const dias = diasRestantes(licencia.pagado_hasta)
   const edicion = getEdicion(licencia.plan_id)
   const limiteTerminales = getLimiteTerminales(licencia.plan_id)
+  const hasUpdateDirective =
+    Boolean(licencia.update_required) ||
+    Boolean((licencia.update_version ?? '').trim()) ||
+    Boolean((licencia.update_notes ?? '').trim()) ||
+    Boolean((licencia.update_url ?? '').trim())
 
   async function accion(tipo: string, extra?: object) {
     setLoading(tipo)
@@ -598,6 +607,76 @@ function ModalAcciones({
             </div>
           )}
 
+          {/* Forzar / sugerir actualización */}
+          <div style={{ borderTop: '1px solid var(--border)', paddingTop: 16 }}>
+            <p style={{ fontSize: 12, color: 'var(--text2)', marginBottom: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              Actualización de app
+            </p>
+
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, marginBottom: 10 }}>
+              <input
+                type="checkbox"
+                checked={updateRequired}
+                onChange={(e) => setUpdateRequired(e.target.checked)}
+              />
+              Actualización requerida (bloquea hasta actualizar)
+            </label>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 8 }}>
+              <input
+                placeholder="Versión objetivo (ej: 2.3.0)"
+                value={updateVersion}
+                onChange={(e) => setUpdateVersion(e.target.value)}
+              />
+              <input
+                placeholder="URL manual (HTTPS) del release oficial en GitHub"
+                value={updateUrl}
+                onChange={(e) => setUpdateUrl(e.target.value)}
+              />
+              <textarea
+                placeholder="Notas de versión / mensaje para el cliente"
+                value={updateNotes}
+                onChange={(e) => setUpdateNotes(e.target.value)}
+                rows={3}
+                style={{ resize: 'vertical' }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+              <button
+                type="button"
+                className="btn btn-primary"
+                style={{ flex: 1, justifyContent: 'center' }}
+                onClick={() =>
+                  accion('set_update', {
+                    required: updateRequired,
+                    version: updateVersion,
+                    notes: updateNotes,
+                    url: updateUrl,
+                  })
+                }
+                disabled={!!loading}
+              >
+                {loading === 'set_update' ? (
+                  <><Loader2 size={14} className="spin" /> Guardando...</>
+                ) : (
+                  <><Cloud size={14} /> Guardar aviso de actualización</>
+                )}
+              </button>
+              <button
+                type="button"
+                className="btn btn-ghost"
+                onClick={() => accion('clear_update')}
+                disabled={!!loading || !hasUpdateDirective}
+              >
+                {loading === 'clear_update' ? <Loader2 size={14} className="spin" /> : <X size={14} />}
+              </button>
+            </div>
+            <p style={{ fontSize: 11, color: 'var(--text3)', marginTop: 6 }}>
+              Solo se permiten enlaces HTTPS a releases oficiales del repositorio autorizado.
+            </p>
+          </div>
+
           {/* Bloquear */}
           <div style={{ borderTop: '1px solid var(--border)', paddingTop: 16 }}>
             <p style={{ fontSize: 12, color: 'var(--text2)', marginBottom: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
@@ -630,7 +709,7 @@ function ModalAcciones({
             ) : (
               <div style={{ background: 'var(--red-bg)', border: '1px solid #3a1010', borderRadius: 8, padding: '12px 14px' }}>
                 <p style={{ fontSize: 13, color: 'var(--red)', fontWeight: 600, marginBottom: 6 }}>
-                  ¿Eliminr a {licencia.cliente_nombre}?
+                  ¿Eliminar a {licencia.cliente_nombre}?
                 </p>
                 <p style={{ fontSize: 12, color: 'var(--text2)', marginBottom: 12 }}>
                   Se borra la licencia y todas las terminales registradas. Los datos locales del cliente NO se borran de su PC. Si el sistema ya está instalado, mostrará &quot;licencia no encontrada&quot; en la próxima verificación.

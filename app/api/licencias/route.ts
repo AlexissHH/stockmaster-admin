@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import crypto from 'crypto'
 import { supabase } from '@/lib/supabase.server'
+import { normalizeUpdateUrl } from '@/lib/update-policy'
 
 function generarSessionToken(password: string): string {
   return crypto
@@ -75,7 +76,7 @@ export async function PATCH(req: NextRequest) {
   if (!await autenticado()) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
   try {
-    const { id, accion, plan_id } = await req.json()
+    const { id, accion, plan_id, required, version, notes, url } = await req.json()
     if (!id) return NextResponse.json({ error: 'Falta id' }, { status: 400 })
 
     let update: Record<string, unknown> = {}
@@ -93,6 +94,31 @@ export async function PATCH(req: NextRequest) {
       update = { activa: true }
     } else if (accion === 'cambiar_plan' && plan_id) {
       update = { plan_id, edition: plan_id.endsWith('_SERVIDOR') ? 'SERVIDOR' : 'LOCAL' }
+    } else if (accion === 'set_update') {
+      const normalizedUrl = normalizeUpdateUrl(url)
+      if (typeof url === 'string' && url.trim() && !normalizedUrl) {
+        return NextResponse.json(
+          {
+            error:
+              'URL de actualización inválida. Usá HTTPS y solo releases oficiales de GitHub del repositorio autorizado.'
+          },
+          { status: 400 }
+        )
+      }
+
+      update = {
+        update_required: Boolean(required),
+        update_version: typeof version === 'string' && version.trim() ? version.trim() : null,
+        update_notes: typeof notes === 'string' && notes.trim() ? notes.trim() : null,
+        update_url: normalizedUrl,
+      }
+    } else if (accion === 'clear_update') {
+      update = {
+        update_required: false,
+        update_version: null,
+        update_notes: null,
+        update_url: null,
+      }
     } else {
       return NextResponse.json({ error: 'Acción inválida' }, { status: 400 })
     }
